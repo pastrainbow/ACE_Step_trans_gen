@@ -1,0 +1,25 @@
+{
+    "prompt": "Given a music track where the middle segment is corrupted by noise, generate a clean version of the track where the middle segment matches the style, instrumentation, and rhythm of the surrounding segments, ensuring seamless musical continuity.",
+    "lyrics": "[instrumental]",
+    "audio_duration": 30,
+    "infer_step": 60,
+    "guidance_scale": 15,
+    "scheduler_type": "euler",
+    "cfg_type": "apg",
+    "omega_scale": 10,
+    "guidance_interval": 0.5,
+    "guidance_interval_decay": 0,
+    "min_guidance_scale": 3,
+    "use_erg_tag": true,
+    "use_erg_lyric": true,
+    "use_erg_diffusion": true,
+    "oss_steps": [],
+    "timecosts": {
+        "preprocess": 0.025463581085205078,
+        "diffusion": 15.243804454803467,
+        "latent2audio": 2.170398473739624
+    },
+    "actual_seeds": [
+        3400270027
+    ]
+}
