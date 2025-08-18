@@ -1,0 +1,28 @@
+(30, 'Given a music track where the middle segment is corrupted by noise, generate a clean version of the track where the middle segment matches the style, instrumentation, and rhythm of the surrounding segments, ensuring seamless musical continuity.', '[instrumental]', 60, 15, 'euler', 'apg', 10, '3400270027', 0.5, 0, 3, True, True, True, '', 0.0, 0.0)
+<acestep.pipeline_ace_step.ACEStepPipeline object at 0x77bcb5275390>
+Traceback (most recent call last):
+  File "/vol/bitbucket/al4624/git_repo/ACE-Step/infer.py", line 180, in <module>
+    main()
+  File "/vol/bitbucket/al4624/anaconda3/envs/ace_step/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/vol/bitbucket/al4624/anaconda3/envs/ace_step/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/vol/bitbucket/al4624/anaconda3/envs/ace_step/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/vol/bitbucket/al4624/anaconda3/envs/ace_step/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/vol/bitbucket/al4624/git_repo/ACE-Step/infer.py", line 141, in main
+    prompts_concat(start_audio_path, end_audio_path, concat_audio_path, 10, device)
+  File "/vol/bitbucket/al4624/git_repo/ACE-Step/infer.py", line 75, in prompts_concat
+    torchaudio.save(output_path, concat_data, sample_rate)
+  File "/vol/bitbucket/al4624/anaconda3/envs/ace_step/lib/python3.10/site-packages/torchaudio/_backend/utils.py", line 313, in save
+    return backend.save(
+  File "/vol/bitbucket/al4624/anaconda3/envs/ace_step/lib/python3.10/site-packages/torchaudio/_backend/soundfile.py", line 44, in save
+    soundfile_backend.save(
+  File "/vol/bitbucket/al4624/anaconda3/envs/ace_step/lib/python3.10/site-packages/torchaudio/_backend/soundfile_backend.py", line 457, in save
+    soundfile.write(file=filepath, data=src, samplerate=sample_rate, subtype=subtype, format=format)
+  File "/vol/bitbucket/al4624/anaconda3/envs/ace_step/lib/python3.10/site-packages/soundfile.py", line 358, in write
+    data = np.asarray(data)
+  File "/vol/bitbucket/al4624/anaconda3/envs/ace_step/lib/python3.10/site-packages/torch/_tensor.py", line 1194, in __array__
+    return self.numpy()
+TypeError: can't convert cuda:0 device type tensor to numpy. Use Tensor.cpu() to copy the tensor to host memory first.

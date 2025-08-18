@@ -1,0 +1,2 @@
+/var/spool/slurm/d/job195945/slurm_script: line 6: 1792120 Killed                  python convert2hf_dataset.py --data_dir "./data" --repeat_count 2000 --output_name "zh_lora_dataset"
+slurmstepd: error: Detected 1 oom_kill event in StepId=195945.batch. Some of the step tasks have been OOM Killed.

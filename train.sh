@@ -16,7 +16,7 @@ EVERY_N_TRAIN_STEPS=2000
 
 #experiment settings
 DATASET_PATH="./zh_lora_dataset"
-EXP_NAME="transition generation"
+EXP_NAME="transition_generation"
 
 #training precision and gradient settings
 PRECISION="32"
@@ -36,7 +36,7 @@ EVERY_PLOT_STEP=2000
 VAL_CHECK_INTERVAL=None
 LORA_CONFIG_PATH="config/zh_rap_lora_config.json"
 
-python middle_noise.py --num_nodes $NUM_NODES \
+python trainer.py --num_nodes $NUM_NODES \
                        --shift $SHIFT \
                        --learning_rate $LEARNING_RATE \
                        --num_workers $NUM_WORKERS \
@@ -55,5 +55,4 @@ python middle_noise.py --num_nodes $NUM_NODES \
                        --checkpoint_dir $CHECKPOINT_DIR \
                        --reload_dataloaders_every_n_epochs $RELOAD_DATALOADERS_EVERY_N_EPOCHS \
                        --every_plot_step $EVERY_PLOT_STEP \
-                       --val_check_interval $VAL_CHECK_INTERVAL \
                        --lora_config_path $LORA_CONFIG_PATH \

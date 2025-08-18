@@ -26,50 +26,54 @@ def get_genres_from_id(track_id):
 
 
 
-def get_all_inst_track_paths(dir_path):
-    return [str(file) for file in Path(dir_path).glob('*.Instrumental.mp3') if file.is_file()]
+def get_all_track_paths(dir_path):
+    return [str(file) for file in Path(dir_path).glob('*.mp3') if file.is_file()]
 
-def data_gen(track_path):
+def data_gen(mixture_track_path):
     try:
-        track_num = int(Path(track_path).name.split('.')[0])
+        track_name = Path(mixture_track_path).stem
 
-        track_name = Path(track_path).stem
+        noised_track_path = os.path.join(noised_inst_track_dir_path, track_name + '.Instrumental.noised.mp3')
 
-        noised_track_path = os.path.join(noised_inst_track_dir_path, track_name + '.noised.mp3')
-        print(noised_track_path)
         if (not os.path.exists(noised_track_path)):
-            print(f"[ERROR] Noised track does not exist for track {track_path}!")
+            print(f"[ERROR] Noised track does not exist for track {noised_track_path}!")
             return
-        
+
+        inst_track_path = os.path.join(inst_track_dir_path, track_name + '.Instrumental.mp3')
+
+        if (not os.path.exists(inst_track_path)):
+            print(f"[ERROR] Noised track does not exist for track {inst_track_path}!")
+            return
+
+
         #we need 4 files: lyric txt, prompt txt, track mp3, and noised track mp3
         lyrics_str = "[instrumental]" #we deal with instrumental tracks
         
         with open(os.path.join(dataset_path, track_name + '_lyrics.txt'), 'w') as f:
             f.write(lyrics_str)
 
-        genre_strs = get_genres_from_id(track_num)
+        genre_strs = get_genres_from_id(int(track_name))
         tag_str = ', '.join(genre_strs)
 
         with open(os.path.join(dataset_path, track_name + '_prompt.txt'), 'w') as f:
             f.write(tag_str)
 
-        shutil.copyfile(track_path, os.path.join(dataset_path, Path(track_path).name))
+        shutil.copyfile(inst_track_path, os.path.join(dataset_path, Path(inst_track_path).name))
 
         shutil.copyfile(noised_track_path, os.path.join(dataset_path, Path(noised_track_path).name))
     except Exception as e:
-        print(f"[ERROR] Error generating data for track {track_path}: {e}")
+        print(f"[ERROR] Error generating data for track {mixture_track_path}: {e}")
 
 
-inst_track_dir_path="/homes/al4624/Documents/YuE_finetune/finetune_testing_dataset/sep_audio"
-noised_inst_track_dir_path="/homes/al4624/Documents/YuE_finetune/finetune_testing_dataset/noised_inst"
+mixture_track_dir_path = "/vol/bitbucket/al4624/finetune_dataset/fma_large/sep/noise_0.1" #10% noise
+inst_track_dir_path="/vol/bitbucket/al4624/finetune_dataset/fma_large_sep"
+noised_inst_track_dir_path="/vol/bitbucket/al4624/finetune_dataset/fma_large_noised_inst"
 dataset_path="/vol/bitbucket/al4624/git_repo/ACE-Step/data"
 
-
-inst_track_paths = get_all_inst_track_paths(inst_track_dir_path)
-inst_track_count = len(inst_track_paths)
+mixture_track_paths = get_all_track_paths(mixture_track_dir_path)
 
 with ProcessPoolExecutor() as executor:
-    executor.map(data_gen, inst_track_paths)
+    executor.map(data_gen, mixture_track_paths)
 
 # for inst_track_path in inst_track_paths:
     # data_gen(inst_track_path)

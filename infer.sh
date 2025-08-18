@@ -19,4 +19,8 @@
 # stdbuf -oL -eL acestep --port 7865 \
 #                        --share true \
 
-python infer.py
+# python infer.py --checkpoint_path /vol/bitbucket/al4624/ace_step_model_output \
+python infer.py --output_path /homes/al4624/Documents/YuE_finetune/inference_audio_prompts/generated.mp3 \
+                --start_audio_path /homes/al4624/Documents/YuE_finetune/inference_audio_prompts/start.mp3 \
+                --end_audio_path /homes/al4624/Documents/YuE_finetune/inference_audio_prompts/end.mp3 \
+                --concat_audio_path /homes/al4624/Documents/YuE_finetune/inference_audio_prompts/full.mp3 \

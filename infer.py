@@ -1,6 +1,9 @@
 import click
 import os
 import json
+import torch
+import torchaudio
+from torchaudio.transforms import Resample
 
 os.environ['HF_HOME'] = '/vol/bitbucket/al4624/cache/ace_step_cache/hf_home_cache'
 os.environ['XDG_CACHE_HOME'] = '/vol/bitbucket/al4624/cache/ace_step_cache/xdg_cache_home'
@@ -35,6 +38,42 @@ def sample_data(json_data):
     )
 
 
+def noise_gen_gaussian_stereo(range_factor, frame_count, device):
+    mean = 0.0
+    #portion of values in range = 1 - 1 / range_factor^2
+    #value range is 1 here
+    std = 1.0 / range_factor
+    
+    # Gaussian noise: create a random normal distribution that has the same size as the data to add noise to 
+    # Genearte noise with same size as that of the data.
+    ch_1 = torch.normal(mean=mean, std=std, size=(frame_count,), device=device)
+    ch_2 = torch.normal(mean=mean, std=std, size=(frame_count,), device=device)
+    return torch.stack((ch_1, ch_2))
+
+
+def load_audio(path, sample_rate=44100):
+    audio, sr = torchaudio.load(path)
+    # Resample if needed
+    if sr != sample_rate:
+        resampler = Resample(orig_freq=sr, new_freq=sample_rate)
+        audio = resampler(audio)
+    return audio
+
+def prompts_concat(start_audio_path, end_audio_path, output_path, noise_duration, device, sample_rate=44100):
+    range_factor = 4  # for gaussian noise generation
+
+    start_audio_data = load_audio(start_audio_path, sample_rate).to(device)
+    end_audio_data = load_audio(end_audio_path, sample_rate).to(device)
+    
+    noise_data = noise_gen_gaussian_stereo(
+        range_factor,
+        int(noise_duration * sample_rate),
+        device,
+    )
+    concat_data = torch.cat((start_audio_data, noise_data, end_audio_data), dim=1)
+    # print(concat_data.shape)
+    torchaudio.save(output_path, concat_data, sample_rate)
+
 @click.command()
 @click.option(
     "--checkpoint_path", type=str, default="/vol/bitbucket/al4624/cache/ace_step_cache/model_cache", help="Path to the checkpoint directory"
@@ -50,8 +89,11 @@ def sample_data(json_data):
     "--overlapped_decode", type=bool, default=False, help="Whether to use overlapped decoding (run dcae and vocoder using sliding windows)"
 )
 @click.option("--device_id", type=int, default=0, help="Device ID to use")
-@click.option("--output_path", type=str, default=None, help="Path to save the output")
-def main(checkpoint_path, bf16, torch_compile, cpu_offload, overlapped_decode, device_id, output_path):
+@click.option("--output_path", type=str, required=True, default=None, help="Path to save the output")
+@click.option("--start_audio_path", type=str, required=True, default=None, help="Path to the starting audio clip")
+@click.option("--end_audio_path", type=str, required=True, default=None, help="Path to the ending audio clip")
+@click.option("--concat_audio_path", type=str, required=True, default=None, help="Path to the middle segment noised audio to save and load from")
+def main(checkpoint_path, bf16, torch_compile, cpu_offload, overlapped_decode, device_id, output_path, start_audio_path, end_audio_path, concat_audio_path):
     os.environ["CUDA_VISIBLE_DEVICES"] = str(device_id)
 
     # data_sampler = DataSampler()
@@ -93,9 +135,14 @@ def main(checkpoint_path, bf16, torch_compile, cpu_offload, overlapped_decode, d
         guidance_scale_lyric,
     ) = json_data
 
-    src_audio_path="/homes/al4624/Documents/YuE_finetune/finetune_testing_dataset/mixture_audio_noised/078303.wav"
-    output_path="/homes/al4624/Documents/YuE_finetune/finetune_testing_dataset/mixture_audio_noised/078303.denoised.wav"
+    #create 
+    cuda_idx = 0
+    device = torch.device(f"cuda:{cuda_idx}" if torch.cuda.is_available() else "cpu")
+    prompts_concat(start_audio_path, end_audio_path, concat_audio_path, 10, device)
+    src_audio_path=concat_audio_path
+    # output_path="/homes/al4624/Documents/YuE_finetune/finetune_testing_dataset/mixture_audio_noised/078303.denoised.wav"
 
+    #repainting inference
     model_demo(
         format="wav",
         audio_duration=audio_duration,

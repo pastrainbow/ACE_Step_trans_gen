@@ -9,8 +9,8 @@ def create_dataset(data_dir="./data", repeat_count=2000, output_name="zh_lora_da
     for song_path in data_path.glob("*.Instrumental.mp3"):
         # print(f"[DEBUG] Adding track {str(song_path)}")
         noised_song_path = str(song_path).replace(".mp3", ".noised.mp3")
-        prompt_path = str(song_path).replace(".mp3", "_prompt.txt")
-        lyric_path = str(song_path).replace(".mp3", "_lyrics.txt")
+        prompt_path = str(song_path).replace(".Instrumental.mp3", "_prompt.txt")
+        lyric_path = str(song_path).replace(".Instrumental.mp3", "_lyrics.txt")
         try:
             assert os.path.exists(prompt_path), f"Prompt file {prompt_path} does not exist."
             assert os.path.exists(lyric_path), f"Lyrics file {lyric_path} does not exist."
@@ -33,8 +33,9 @@ def create_dataset(data_dir="./data", repeat_count=2000, output_name="zh_lora_da
             }
             all_examples.append(example)
         except AssertionError as e:
+            print(f"[ERROR] {e}")
             continue
-
+    # print("Finish scanning")
     # repeat specified times
     ds = Dataset.from_list(all_examples * repeat_count)
     ds.save_to_disk(output_name)

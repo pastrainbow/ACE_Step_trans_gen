@@ -537,10 +537,12 @@ class Text2MusicDataset(Dataset):
         valid_recaption.append(prompt)
         prompt = random.choice(valid_recaption)
         prompt = prompt[:256]  # Limit prompt length
-        print(f"[DEBUG] Original prompt: {prompt}")
-        prompt = "Given a music track where the middle segment is corrupted by noise, generate a clean version of the track where the middle segment matches the style, instrumentation, and rhythm of the surrounding segments, ensuring seamless musical continuity."
+        # print(f"[DEBUG] Original prompt: {prompt}")
+        prompt = "Given a music track where the middle segment is corrupted by noise, " \
+        "generate a clean version of the track where the middle segment matches the style, instrumentation, " \
+        "and rhythm of the surrounding segments, ensuring seamless musical continuity."
         prompt = prompt[:256]
-        print(f"[DEBUG] New denoise prompt: {prompt}")
+        # print(f"[DEBUG] New denoise prompt: {prompt}")
         
 
         # Process lyrics

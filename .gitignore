@@ -205,3 +205,6 @@ exps/*
 
 #fma large dataset metadata
 fma_metadata
+
+#dataset folder
+data/*
