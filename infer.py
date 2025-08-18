@@ -135,9 +135,9 @@ def main(checkpoint_path, bf16, torch_compile, cpu_offload, overlapped_decode, d
         guidance_scale_lyric,
     ) = json_data
 
-    #create 
-    cuda_idx = 0
-    device = torch.device(f"cuda:{cuda_idx}" if torch.cuda.is_available() else "cpu")
+    #create middle segment noised audio
+    #Run on cpu since the concat process should be quite low cost 
+    device = torch.device("cpu")
     prompts_concat(start_audio_path, end_audio_path, concat_audio_path, 10, device)
     src_audio_path=concat_audio_path
     # output_path="/homes/al4624/Documents/YuE_finetune/finetune_testing_dataset/mixture_audio_noised/078303.denoised.wav"

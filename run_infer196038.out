@@ -1,4 +1,0 @@
-Traceback (most recent call last):
-  File "/vol/bitbucket/al4624/git_repo/ACE-Step/infer.py", line 183, in <module>
-    main()
-TypeError: main() missing 10 required positional arguments: 'checkpoint_path', 'bf16', 'torch_compile', 'cpu_offload', 'overlapped_decode', 'device_id', 'output_path', 'start_audio_path', 'end_audio_path', and 'concat_audio_path'
