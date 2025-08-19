@@ -33,7 +33,7 @@ CHECKPOINT_DIR="/vol/bitbucket/al4624/ace_step_model_output/"
 #Validation and reloading settings
 RELOAD_DATALOADERS_EVERY_N_EPOCHS=1
 EVERY_PLOT_STEP=2000
-VAL_CHECK_INTERVAL=2000
+VAL_CHECK_INTERVAL=30
 LORA_CONFIG_PATH="config/zh_rap_lora_config.json"
 
 CMD="python trainer.py --num_nodes $NUM_NODES \

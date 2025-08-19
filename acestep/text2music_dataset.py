@@ -17,7 +17,7 @@ warnings.simplefilter("ignore", category=FutureWarning)
 
 DEFAULT_TRAIN_PATH = "./data/example_dataset"
 
-DEBUG=True
+DEBUG=False
 
 def is_silent_audio(audio_tensor, silence_threshold=0.95):
     """
@@ -547,7 +547,7 @@ class Text2MusicDataset(Dataset):
         "generate a clean version of the track where the middle segment matches the style, instrumentation, " \
         "and rhythm of the surrounding segments, ensuring seamless musical continuity."
         prompt = prompt[:256]
-        print(f"[DEBUG] New denoise prompt: {prompt}")
+        if DEBUG: print(f"[DEBUG] New denoise prompt: {prompt}")
         
 
         # Process lyrics
@@ -629,7 +629,7 @@ class Text2MusicDataset(Dataset):
 
         item = self.pretrain_ds[idx]
 
-        print(f"[DEBUG] item: {item}")
+        if DEBUG: print(f"[DEBUG] item: {item}")
 
         item["idx"] = idx
         item = self.tokenize_lyrics_map(item)

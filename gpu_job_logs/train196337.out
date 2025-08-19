@@ -1,0 +1,104 @@
+python trainer.py --num_nodes 1 --shift 3.0 --learning_rate 1e-4 --num_workers 8 --epochs 1 --max_steps 2000000 --every_n_train_steps 2000 --dataset_path ./zh_lora_dataset --exp_name transition_generation --precision 32 --accumulate_grad_batches 1 --gradient_clip_val 0.5 --gradient_clip_algorithm norm --devices 1 --logger_dir ./exps/logs/ --val_check_interval 30 --checkpoint_dir /vol/bitbucket/al4624/ace_step_model_output/ --reload_dataloaders_every_n_epochs 1 --every_plot_step 2000 --lora_config_path config/zh_rap_lora_config.json
+2025-08-19 15:32:03.720 | INFO     | acestep.pipeline_ace_step:get_checkpoint_path:178 - Download models from Hugging Face: ACE-Step/ACE-Step-v1-3.5B, cache to: /vol/bitbucket/al4624/ace_step_model_output/
+[DEBUG] Custom trainer.
+Fetching 14 files:   0%|          | 0/14 [00:00<?, ?it/s]Fetching 14 files: 100%|██████████| 14/14 [00:00<00:00, 4128.25it/s]
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/1
+----------------------------------------------------------------------------------------------------
+distributed_backend=nccl
+All distributed processes registered. Starting with 1 processes
+----------------------------------------------------------------------------------------------------
+
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+
+  | Name               | Type                      | Params | Mode 
+-------------------------------------------------------------------------
+0 | transformers       | ACEStepTransformer2DModel | 3.6 B  | train
+1 | dcae               | MusicDCAE                 | 259 M  | eval 
+2 | text_encoder_model | UMT5EncoderModel          | 281 M  | eval 
+3 | mert_model         | MERTModel                 | 315 M  | eval 
+4 | resampler_mert     | Resample                  | 0      | train
+5 | hubert_model       | HubertModel               | 94.4 M | eval 
+6 | resampler_mhubert  | Resample                  | 0      | train
+-------------------------------------------------------------------------
+261 M     Trainable params
+4.3 B     Non-trainable params
+4.5 B     Total params
+18,076.083Total estimated model params size (MB)
+2970      Modules in train mode
+1503      Modules in eval mode
+SLURM auto-requeueing enabled. Setting signal handlers.
+2025-08-19 15:35:11.791 | INFO     | acestep.text2music_dataset:__init__:206 - Dataset size: 30 total 30 samples
+/vol/bitbucket/al4624/anaconda3/envs/ace_step/lib/python3.10/site-packages/torch/utils/data/dataloader.py:624: UserWarning: This DataLoader will create 8 worker processes in total. Our suggested max number of worker in current system is 6, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
+  warnings.warn(
+WARNING: feature_extractor_cqt requires the libray 'nnAudio'
+[DEBUG] pretrain_ds: Dataset({
+    features: ['keys', 'filename', 'noised_filename', 'tags', 'speaker_emb_path', 'norm_lyrics', 'recaption'],
+    num_rows: 30
+})
+Training: |          | 0/? [00:00<?, ?it/s]Training:   0%|          | 0/30 [00:00<?, ?it/s]Epoch 0:   0%|          | 0/30 [00:00<?, ?it/s] 
+  0%|          | 0/60 [00:00<?, ?it/s][A
+  2%|▏         | 1/60 [00:04<04:52,  4.95s/it][A
+  3%|▎         | 2/60 [00:05<02:26,  2.53s/it][A
+  5%|▌         | 3/60 [00:07<01:50,  1.94s/it][A
+  7%|▋         | 4/60 [00:08<01:32,  1.65s/it][A
+  8%|▊         | 5/60 [00:09<01:22,  1.50s/it][A
+ 10%|█         | 6/60 [00:10<01:15,  1.40s/it][A
+ 12%|█▏        | 7/60 [00:11<01:11,  1.34s/it][A
+ 13%|█▎        | 8/60 [00:13<01:07,  1.30s/it][A
+ 15%|█▌        | 9/60 [00:14<01:05,  1.28s/it][A
+ 17%|█▋        | 10/60 [00:15<01:02,  1.26s/it][A
+ 18%|█▊        | 11/60 [00:16<01:01,  1.25s/it][A
+ 20%|██        | 12/60 [00:17<00:59,  1.24s/it][A
+ 22%|██▏       | 13/60 [00:19<00:58,  1.24s/it][A
+ 23%|██▎       | 14/60 [00:20<00:56,  1.23s/it][A
+ 25%|██▌       | 15/60 [00:21<00:55,  1.23s/it][A
+ 27%|██▋       | 16/60 [00:22<00:54,  1.23s/it][A
+ 28%|██▊       | 17/60 [00:24<00:52,  1.23s/it][A
+ 30%|███       | 18/60 [00:25<00:51,  1.23s/it][A
+ 32%|███▏      | 19/60 [00:26<00:50,  1.23s/it][A
+ 33%|███▎      | 20/60 [00:27<00:49,  1.23s/it][A
+ 35%|███▌      | 21/60 [00:29<00:47,  1.22s/it][A
+ 37%|███▋      | 22/60 [00:30<00:46,  1.23s/it][A
+ 38%|███▊      | 23/60 [00:31<00:45,  1.23s/it][A
+ 40%|████      | 24/60 [00:32<00:44,  1.23s/it][A
+ 42%|████▏     | 25/60 [00:33<00:42,  1.23s/it][A
+ 43%|████▎     | 26/60 [00:35<00:41,  1.23s/it][A
+ 45%|████▌     | 27/60 [00:36<00:40,  1.23s/it][A
+ 47%|████▋     | 28/60 [00:37<00:39,  1.23s/it][A
+ 48%|████▊     | 29/60 [00:38<00:38,  1.23s/it][A
+ 50%|█████     | 30/60 [00:40<00:36,  1.23s/it][A
+ 52%|█████▏    | 31/60 [00:41<00:35,  1.23s/it][A
+ 53%|█████▎    | 32/60 [00:42<00:34,  1.23s/it][A
+ 55%|█████▌    | 33/60 [00:43<00:33,  1.23s/it][A
+ 57%|█████▋    | 34/60 [00:44<00:31,  1.23s/it][A
+ 58%|█████▊    | 35/60 [00:46<00:30,  1.23s/it][A
+ 60%|██████    | 36/60 [00:47<00:29,  1.23s/it][A
+ 62%|██████▏   | 37/60 [00:48<00:28,  1.23s/it][A
+ 63%|██████▎   | 38/60 [00:49<00:27,  1.23s/it][A
+ 65%|██████▌   | 39/60 [00:51<00:25,  1.23s/it][A
+ 67%|██████▋   | 40/60 [00:52<00:24,  1.23s/it][A
+ 68%|██████▊   | 41/60 [00:53<00:23,  1.23s/it][A
+ 70%|███████   | 42/60 [00:54<00:22,  1.23s/it][A
+ 72%|███████▏  | 43/60 [00:56<00:20,  1.23s/it][A
+ 73%|███████▎  | 44/60 [00:57<00:19,  1.23s/it][A
+ 75%|███████▌  | 45/60 [00:58<00:18,  1.23s/it][A
+ 77%|███████▋  | 46/60 [00:59<00:17,  1.23s/it][A
+ 78%|███████▊  | 47/60 [01:01<00:16,  1.23s/it][A
+ 80%|████████  | 48/60 [01:02<00:14,  1.23s/it][A
+ 82%|████████▏ | 49/60 [01:03<00:13,  1.23s/it][A
+ 83%|████████▎ | 50/60 [01:04<00:12,  1.24s/it][A
+ 85%|████████▌ | 51/60 [01:05<00:11,  1.24s/it][A
+ 87%|████████▋ | 52/60 [01:07<00:09,  1.24s/it][A
+ 88%|████████▊ | 53/60 [01:08<00:08,  1.24s/it][A
+ 90%|█████████ | 54/60 [01:09<00:07,  1.24s/it][A
+ 92%|█████████▏| 55/60 [01:10<00:06,  1.24s/it][A
+ 93%|█████████▎| 56/60 [01:12<00:04,  1.24s/it][A
+ 95%|█████████▌| 57/60 [01:13<00:03,  1.24s/it][A
+ 97%|█████████▋| 58/60 [01:14<00:02,  1.24s/it][A
+ 98%|█████████▊| 59/60 [01:15<00:01,  1.24s/it][A
+100%|██████████| 60/60 [01:17<00:00,  1.24s/it][A100%|██████████| 60/60 [01:17<00:00,  1.28s/it]
+/var/spool/slurm/d/job196337/slurm_script: line 66: 884824 Killed                  python trainer.py --num_nodes 1 --shift 3.0 --learning_rate 1e-4 --num_workers 8 --epochs 1 --max_steps 2000000 --every_n_train_steps 2000 --dataset_path ./zh_lora_dataset --exp_name transition_generation --precision 32 --accumulate_grad_batches 1 --gradient_clip_val 0.5 --gradient_clip_algorithm norm --devices 1 --logger_dir ./exps/logs/ --val_check_interval 30 --checkpoint_dir /vol/bitbucket/al4624/ace_step_model_output/ --reload_dataloaders_every_n_epochs 1 --every_plot_step 2000 --lora_config_path config/zh_rap_lora_config.json
+slurmstepd: error: Detected 1 oom_kill event in StepId=196337.batch. Some of the step tasks have been OOM Killed.
