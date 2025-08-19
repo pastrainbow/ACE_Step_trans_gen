@@ -74,6 +74,12 @@ def prompts_concat(start_audio_path, end_audio_path, output_path, noise_duration
     # print(concat_data.shape)
     torchaudio.save(output_path, concat_data, sample_rate)
 
+    #since we had already loaded the start and end tracks, we can also get the repaint start and end times here
+    start_audio_duration = start_audio_data.shape[-1] / sample_rate
+    return (start_audio_duration, start_audio_duration + noise_duration)
+
+    
+
 @click.command()
 @click.option(
     "--checkpoint_path", type=str, default="/vol/bitbucket/al4624/cache/ace_step_cache/model_cache", help="Path to the checkpoint directory"
@@ -93,7 +99,9 @@ def prompts_concat(start_audio_path, end_audio_path, output_path, noise_duration
 @click.option("--start_audio_path", type=str, required=True, default=None, help="Path to the starting audio clip")
 @click.option("--end_audio_path", type=str, required=True, default=None, help="Path to the ending audio clip")
 @click.option("--concat_audio_path", type=str, required=True, default=None, help="Path to the middle segment noised audio to save and load from")
-def main(checkpoint_path, bf16, torch_compile, cpu_offload, overlapped_decode, device_id, output_path, start_audio_path, end_audio_path, concat_audio_path):
+@click.option("--repaint_variance", type=float, default=0.5, help="A float value between 0 and 1, determines how much the repaint section is noised, i.e. how varied the repainting will be")
+@click.option("--gen_duration", type=float, default=10.0, help="The duration of the transition to be generated")
+def main(checkpoint_path, bf16, torch_compile, cpu_offload, overlapped_decode, device_id, output_path, start_audio_path, end_audio_path, concat_audio_path, repaint_variance, gen_duration):
     os.environ["CUDA_VISIBLE_DEVICES"] = str(device_id)
 
     # data_sampler = DataSampler()
@@ -138,7 +146,7 @@ def main(checkpoint_path, bf16, torch_compile, cpu_offload, overlapped_decode, d
     #create middle segment noised audio
     #Run on cpu since the concat process should be quite low cost 
     device = torch.device("cpu")
-    prompts_concat(start_audio_path, end_audio_path, concat_audio_path, 10, device)
+    repaint_start, repaint_end = prompts_concat(start_audio_path, end_audio_path, concat_audio_path, gen_duration, device)
     src_audio_path=concat_audio_path
     # output_path="/homes/al4624/Documents/YuE_finetune/finetune_testing_dataset/mixture_audio_noised/078303.denoised.wav"
 
@@ -164,10 +172,10 @@ def main(checkpoint_path, bf16, torch_compile, cpu_offload, overlapped_decode, d
         guidance_scale_text=guidance_scale_text,
         guidance_scale_lyric=guidance_scale_lyric,
         retake_seeds=None,
-        retake_variance=0.8,
+        retake_variance=repaint_variance,
         task="repaint",
-        repaint_start=10,
-        repaint_end=20,
+        repaint_start=repaint_start,
+        repaint_end=repaint_end,
         src_audio_path=src_audio_path,
         lora_name_or_path="none",
         lora_weight=1,

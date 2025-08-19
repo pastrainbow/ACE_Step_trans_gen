@@ -203,8 +203,9 @@ pipeline_ace_step_demo.py
 start.sh
 exps/*
 
-#fma large dataset metadata
+#fma_large dataset metadata
 fma_metadata
 
 #dataset folder
 data/*
+test_data/*

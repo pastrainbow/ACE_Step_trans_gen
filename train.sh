@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=al4624
-#SBATCH --output=train%j.out
+#SBATCH --output=gpu_job_logs/train%j.out
 
 #general
 NUM_NODES=1
@@ -10,7 +10,7 @@ SHIFT=3.0
 #training hyperparameters
 LEARNING_RATE=1e-4
 NUM_WORKERS=8
-EPOCHS=-1
+EPOCHS=1
 MAX_STEPS=2000000
 EVERY_N_TRAIN_STEPS=2000
 
@@ -27,16 +27,16 @@ GRADIENT_CLIP_ALGORITHM="norm"
 #checkpoint and logging setttings
 DEVICES=1
 LOGGER_DIR="./exps/logs/"
-CKPT_PATH=None
+CKPT_PATH="none"
 CHECKPOINT_DIR="/vol/bitbucket/al4624/ace_step_model_output/"
 
 #Validation and reloading settings
 RELOAD_DATALOADERS_EVERY_N_EPOCHS=1
 EVERY_PLOT_STEP=2000
-VAL_CHECK_INTERVAL=None
+VAL_CHECK_INTERVAL=2000
 LORA_CONFIG_PATH="config/zh_rap_lora_config.json"
 
-python trainer.py --num_nodes $NUM_NODES \
+CMD="python trainer.py --num_nodes $NUM_NODES \
                        --shift $SHIFT \
                        --learning_rate $LEARNING_RATE \
                        --num_workers $NUM_WORKERS \
@@ -51,8 +51,16 @@ python trainer.py --num_nodes $NUM_NODES \
                        --gradient_clip_algorithm $GRADIENT_CLIP_ALGORITHM \
                        --devices $DEVICES \
                        --logger_dir $LOGGER_DIR \
-                       --ckpt_path $CKPT_PATH \
+                       --val_check_interval $VAL_CHECK_INTERVAL \
                        --checkpoint_dir $CHECKPOINT_DIR \
                        --reload_dataloaders_every_n_epochs $RELOAD_DATALOADERS_EVERY_N_EPOCHS \
                        --every_plot_step $EVERY_PLOT_STEP \
-                       --lora_config_path $LORA_CONFIG_PATH \
+                       --lora_config_path $LORA_CONFIG_PATH"
+
+
+if [ "$CKPT_PATH" != "none" ]; then
+    CMD="$CMD --ckpt_path $CKPT_PATH"
+fi
+
+echo $CMD
+eval $CMD

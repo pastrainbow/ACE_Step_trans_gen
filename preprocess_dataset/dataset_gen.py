@@ -65,10 +65,17 @@ def data_gen(mixture_track_path):
         print(f"[ERROR] Error generating data for track {mixture_track_path}: {e}")
 
 
-mixture_track_dir_path = "/vol/bitbucket/al4624/finetune_dataset/fma_large/sep/noise_0.1" #10% noise
-inst_track_dir_path="/vol/bitbucket/al4624/finetune_dataset/fma_large_sep"
-noised_inst_track_dir_path="/vol/bitbucket/al4624/finetune_dataset/fma_large_noised_inst"
-dataset_path="/vol/bitbucket/al4624/git_repo/ACE-Step/data"
+# mixture_track_dir_path = "/vol/bitbucket/al4624/finetune_dataset/fma_large/sep/noise_0.1" #10% noise
+# inst_track_dir_path="/vol/bitbucket/al4624/finetune_dataset/fma_large_sep"
+# noised_inst_track_dir_path="/vol/bitbucket/al4624/finetune_dataset/fma_large_noised_inst"
+# dataset_path="/vol/bitbucket/al4624/git_repo/ACE-Step/data"
+
+
+#testing setup paths
+mixture_track_dir_path = "/homes/al4624/Documents/YuE_finetune/finetune_testing_dataset/mixture_audio" #10% noise
+inst_track_dir_path="/homes/al4624/Documents/YuE_finetune/finetune_testing_dataset/sep_audio"
+noised_inst_track_dir_path="/homes/al4624/Documents/YuE_finetune/finetune_testing_dataset/noised_inst"
+dataset_path="/vol/bitbucket/al4624/git_repo/ACE-Step/test_data"
 
 mixture_track_paths = get_all_track_paths(mixture_track_dir_path)
 

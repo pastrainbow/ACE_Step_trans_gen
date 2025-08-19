@@ -17,6 +17,7 @@ warnings.simplefilter("ignore", category=FutureWarning)
 
 DEFAULT_TRAIN_PATH = "./data/example_dataset"
 
+DEBUG=True
 
 def is_silent_audio(audio_tensor, silence_threshold=0.95):
     """
@@ -214,7 +215,7 @@ class Text2MusicDataset(Dataset):
             sample_size: Optional limit on number of samples to use
         """
         pretrain_ds = load_from_disk(self.train_dataset_path)
-        print(f"[DEBUG] pretrain_ds: {pretrain_ds}")
+        if DEBUG: print(f"[DEBUG] pretrain_ds: {pretrain_ds}")
 
 
         if sample_size is not None:
@@ -483,6 +484,8 @@ class Text2MusicDataset(Dataset):
             logger.error(f"Silent audio {item}")
             return None
         
+        return audio
+        
 
     def process(self, item):
         """
@@ -494,14 +497,17 @@ class Text2MusicDataset(Dataset):
         Returns:
             list: List of processed examples
         """
+        if DEBUG: print(f"[DEBUG] Processing")
         # Get audio
         audio = self.get_audio(item)
         if audio is None:
+            if DEBUG: print(f"[ERROR] audio is none")
             return []
         
         # Get noised audio
         noised_audio = self.get_noised_audio(item)
         if noised_audio is None:
+            if DEBUG: print(f"[ERROR] noised audio is none")
             return []
 
         music_wavs = audio
@@ -537,12 +543,11 @@ class Text2MusicDataset(Dataset):
         valid_recaption.append(prompt)
         prompt = random.choice(valid_recaption)
         prompt = prompt[:256]  # Limit prompt length
-        # print(f"[DEBUG] Original prompt: {prompt}")
         prompt = "Given a music track where the middle segment is corrupted by noise, " \
         "generate a clean version of the track where the middle segment matches the style, instrumentation, " \
         "and rhythm of the surrounding segments, ensuring seamless musical continuity."
         prompt = prompt[:256]
-        # print(f"[DEBUG] New denoise prompt: {prompt}")
+        print(f"[DEBUG] New denoise prompt: {prompt}")
         
 
         # Process lyrics
@@ -574,11 +579,11 @@ class Text2MusicDataset(Dataset):
 
         #validation: noised and clean audio signals should have same shape and same dtype
         if noised_music_wavs.shape != music_wavs.shape:
-            logger.error(f"Shape mismatch between noised and clean audio for track {item['filename']}!")
+            if DEBUG: print(f"[DEBUG] Shape mismatch between noised and clean audio for track {item['filename']}!")
             return None
 
         if noised_music_wavs.dtype != music_wavs.dtype:
-            logger.error(f"Data type mismatch between noised and clean audio for track {item['filename']}!")
+            if DEBUG: print(f"[DEBUG] Data type mismatch between noised and clean audio for track {item['filename']}!")
             return None
 
         # Create example dictionary
@@ -595,6 +600,7 @@ class Text2MusicDataset(Dataset):
             "structured_tag": {"recaption": recaption},
             "candidate_lyric_chunk": candidate_lyric_chunk,
         }
+        if DEBUG: print(f"[DEBUG] example dict: {example}")
         return [example]
 
     def get_full_features(self, idx):
@@ -622,15 +628,21 @@ class Text2MusicDataset(Dataset):
         }
 
         item = self.pretrain_ds[idx]
+
+        print(f"[DEBUG] item: {item}")
+
         item["idx"] = idx
         item = self.tokenize_lyrics_map(item)
         features = self.process(item)
+
+        if DEBUG: print(f"[DEBUG] features for index {idx}: {features}")
 
         if features:
             for feature in features:
                 for k, v in feature.items():
                     # Handle key mapping more explicitly
                     target_key = k + "s"  # Default plural form
+                    if DEBUG: print(f"[DEBUG] target key: {target_key}")
 
                     # Special case handling for keys that don't follow simple plural pattern
                     if k == "key":
@@ -642,7 +654,7 @@ class Text2MusicDataset(Dataset):
 
                     if v is not None and target_key in examples:
                         examples[target_key].append(v)
-
+        if DEBUG: print(f"[DEBUG] examples for index {idx}: {examples}")
         return examples
 
     def pack_batch(self, batch):
@@ -753,7 +765,7 @@ class Text2MusicDataset(Dataset):
 
 
 if __name__ == "__main__":
-    print("[DEBUG] Custom text2music dataset processor.")
+    if DEBUG: print("[DEBUG] Custom text2music dataset processor.")
     # Example usage
     dataset = Text2MusicDataset()
     print(f"Dataset size: {len(dataset)}")
