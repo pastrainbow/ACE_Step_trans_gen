@@ -848,6 +848,7 @@ def main(args):
         monitor=None,
         every_n_train_steps=args.every_n_train_steps,
         save_top_k=-1,
+        save_weights_only=True, 
     )
     # add datetime str to version
     logger_callback = TensorBoardLogger(
