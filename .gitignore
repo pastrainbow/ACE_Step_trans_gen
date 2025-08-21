@@ -209,3 +209,6 @@ fma_metadata
 #dataset folder
 data/*
 test_data/*
+
+#logs
+gpu_job_logs/*

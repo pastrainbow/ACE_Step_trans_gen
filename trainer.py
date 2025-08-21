@@ -32,6 +32,8 @@ from acestep.pipeline_ace_step import ACEStepPipeline
 
 import pytorch_lightning as pl
 
+from pytorch_lightning.strategies import DDPStrategy
+
 matplotlib.use("Agg")
 torch.backends.cudnn.benchmark = False
 torch.set_float32_matmul_precision("high")
@@ -832,21 +834,16 @@ class Pipeline(LightningModule):
                 f.write(key_prompt_lyric)
             i += 1
 
-class SafeCheckpoint(pl.Callback):
-    def __init__(self, save_dir, every_n_steps=1000):
-        super().__init__()
-        self.save_dir = save_dir
-        self.every_n_steps = every_n_steps
 
+
+class CheckpointMemoryOptimizer(pl.Callback):
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         global_step = trainer.global_step
-        if global_step % self.every_n_steps == 0 and global_step > 0:
-            # move weights to CPU and save in fp16 to cut size
-            state_dict = {k: v.detach().cpu().half() for k, v in pl_module.state_dict().items()}
-            path = f"{self.save_dir}/step-{global_step}.pt"
-            torch.save({"state_dict": state_dict}, path)
-            trainer.print(f"Checkpoint saved: {path}")
-
+        if global_step % trainer.checkpoint_callback.every_n_train_steps == 0:
+            # Clear memory before checkpointing
+            torch.cuda.empty_cache()
+            import gc
+            gc.collect()
 
 def main(args):
     model = Pipeline(
@@ -870,18 +867,25 @@ def main(args):
         version=datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + args.exp_name,
         save_dir=args.logger_dir,
     )
+
+    memory_callback = CheckpointMemoryOptimizer()
+
     trainer = Trainer(
         accelerator="gpu",
         devices=args.devices,
         num_nodes=args.num_nodes,
         precision=args.precision,
         accumulate_grad_batches=args.accumulate_grad_batches,
-        strategy="ddp_sharded_find_unused_parameters_true",
+        # strategy="ddp_find_unused_parameters_true",
+        strategy=DDPStrategy(
+            find_unused_parameters=True,
+            state_dict_type="sharded", 
+        ),
         max_epochs=args.epochs,
         max_steps=args.max_steps,
         log_every_n_steps=1,
         logger=logger_callback,
-        callbacks=[checkpoint_callback],
+        callbacks=[memory_callback, checkpoint_callback],
         gradient_clip_val=args.gradient_clip_val,
         gradient_clip_algorithm=args.gradient_clip_algorithm,
         reload_dataloaders_every_n_epochs=args.reload_dataloaders_every_n_epochs,
