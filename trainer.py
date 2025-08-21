@@ -30,6 +30,7 @@ from tqdm import tqdm
 import random
 from acestep.pipeline_ace_step import ACEStepPipeline
 
+import pytorch_lightning as pl
 
 matplotlib.use("Agg")
 torch.backends.cudnn.benchmark = False
@@ -831,6 +832,21 @@ class Pipeline(LightningModule):
                 f.write(key_prompt_lyric)
             i += 1
 
+class SafeCheckpoint(pl.Callback):
+    def __init__(self, save_dir, every_n_steps=1000):
+        super().__init__()
+        self.save_dir = save_dir
+        self.every_n_steps = every_n_steps
+
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        global_step = trainer.global_step
+        if global_step % self.every_n_steps == 0 and global_step > 0:
+            # move weights to CPU and save in fp16 to cut size
+            state_dict = {k: v.detach().cpu().half() for k, v in pl_module.state_dict().items()}
+            path = f"{self.save_dir}/step-{global_step}.pt"
+            torch.save({"state_dict": state_dict}, path)
+            trainer.print(f"Checkpoint saved: {path}")
+
 
 def main(args):
     model = Pipeline(
@@ -848,7 +864,6 @@ def main(args):
         monitor=None,
         every_n_train_steps=args.every_n_train_steps,
         save_top_k=-1,
-        save_weights_only=True, 
     )
     # add datetime str to version
     logger_callback = TensorBoardLogger(
@@ -861,7 +876,7 @@ def main(args):
         num_nodes=args.num_nodes,
         precision=args.precision,
         accumulate_grad_batches=args.accumulate_grad_batches,
-        strategy="ddp_find_unused_parameters_true",
+        strategy="ddp_sharded_find_unused_parameters_true",
         max_epochs=args.epochs,
         max_steps=args.max_steps,
         log_every_n_steps=1,
