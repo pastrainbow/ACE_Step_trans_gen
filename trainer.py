@@ -620,6 +620,7 @@ class Pipeline(LightningModule):
         return self.run_step(batch, batch_idx)
 
     def on_save_checkpoint(self, checkpoint):
+        print("[DEBUG] On saving checkpoint action...")
         state = {}
         log_dir = self.logger.log_dir
         epoch = self.current_epoch
@@ -838,12 +839,80 @@ class Pipeline(LightningModule):
 
 class CheckpointMemoryOptimizer(pl.Callback):
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        print("[DEBUG] Clearing memory...")
         global_step = trainer.global_step
         if global_step % trainer.checkpoint_callback.every_n_train_steps == 0:
             # Clear memory before checkpointing
             torch.cuda.empty_cache()
             import gc
             gc.collect()
+
+
+class LoraOnlyCheckpoint(pl.Callback):
+    def __init__(self, every_n_train_steps=1000, save_dir="checkpoints"):
+        self.every_n_train_steps = every_n_train_steps
+        self.save_dir = save_dir
+
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        global_step = trainer.global_step
+        if global_step % self.every_n_train_steps == 0 and trainer.is_global_zero:
+            # clear CUDA memory before saving
+            torch.cuda.empty_cache()
+            import gc
+            gc.collect()
+
+            # build checkpoint path
+            step_name = f"step={global_step}_lora"
+            ckpt_dir = os.path.join(trainer.logger.log_dir, self.save_dir, step_name)
+            os.makedirs(ckpt_dir, exist_ok=True)
+
+            # save only LoRA adapter (as defined in Pipeline.on_save_checkpoint)
+            pl_module.transformers.save_lora_adapter(
+                ckpt_dir, adapter_name=pl_module.adapter_name
+            )
+
+            print(f"[DEBUG] Saved lightweight checkpoint at {ckpt_dir}")
+
+
+class HybridCheckpoint(pl.Callback):
+    def __init__(self, 
+                 lora_every_n_steps=1000, 
+                 full_every_n_steps=10000, 
+                 save_dir="checkpoints"):
+        self.lora_every_n_steps = lora_every_n_steps
+        self.full_every_n_steps = full_every_n_steps
+        self.save_dir = save_dir
+
+    def _clear_mem(self):
+        torch.cuda.empty_cache()
+        import gc
+        gc.collect()
+
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        global_step = trainer.global_step
+        if not trainer.is_global_zero:
+            return
+
+        # --- save LoRA adapter only ---
+        if self.lora_every_n_steps > 0 and global_step % self.lora_every_n_steps == 0:
+            self._clear_mem()
+            step_name = f"step={global_step}_lora"
+            ckpt_dir = os.path.join(trainer.logger.log_dir, self.save_dir, step_name)
+            os.makedirs(ckpt_dir, exist_ok=True)
+            pl_module.transformers.save_lora_adapter(
+                ckpt_dir, adapter_name=pl_module.adapter_name
+            )
+            print(f"[DEBUG] Saved lightweight LoRA checkpoint at {ckpt_dir}")
+
+        # --- save full training state (optimizer, scheduler, etc.) ---
+        if self.full_every_n_steps > 0 and global_step % self.full_every_n_steps == 0:
+            self._clear_mem()
+            step_name = f"step={global_step}_full.ckpt"
+            ckpt_path = os.path.join(trainer.logger.log_dir, self.save_dir, step_name)
+            trainer.save_checkpoint(ckpt_path)
+            self._clear_mem()
+            print(f"[DEBUG] Saved FULL checkpoint at {ckpt_path}")
+
 
 def main(args):
     model = Pipeline(
@@ -862,13 +931,14 @@ def main(args):
         every_n_train_steps=args.every_n_train_steps,
         save_top_k=-1,
     )
+
     # add datetime str to version
     logger_callback = TensorBoardLogger(
         version=datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + args.exp_name,
         save_dir=args.logger_dir,
     )
 
-    memory_callback = CheckpointMemoryOptimizer()
+    # memory_callback = CheckpointMemoryOptimizer()
 
     trainer = Trainer(
         accelerator="gpu",
@@ -876,16 +946,12 @@ def main(args):
         num_nodes=args.num_nodes,
         precision=args.precision,
         accumulate_grad_batches=args.accumulate_grad_batches,
-        # strategy="ddp_find_unused_parameters_true",
-        strategy=DDPStrategy(
-            find_unused_parameters=True,
-            state_dict_type="sharded", 
-        ),
+        strategy="ddp_find_unused_parameters_true",
         max_epochs=args.epochs,
         max_steps=args.max_steps,
         log_every_n_steps=1,
         logger=logger_callback,
-        callbacks=[memory_callback, checkpoint_callback],
+        callbacks=[checkpoint_callback],
         gradient_clip_val=args.gradient_clip_val,
         gradient_clip_algorithm=args.gradient_clip_algorithm,
         reload_dataloaders_every_n_epochs=args.reload_dataloaders_every_n_epochs,

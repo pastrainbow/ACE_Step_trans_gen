@@ -12,7 +12,7 @@ LEARNING_RATE=1e-4
 NUM_WORKERS=8
 EPOCHS=1
 MAX_STEPS=2000000
-EVERY_N_TRAIN_STEPS=200 #should be 2000. 200 for debugging the checkpointing
+EVERY_N_TRAIN_STEPS=2000 #should be 2000. 200 for debugging the checkpointing
 
 #experiment settings
 DATASET_PATH="./zh_lora_dataset"
@@ -32,7 +32,7 @@ CHECKPOINT_DIR="/vol/bitbucket/al4624/ace_step_model_output/"
 
 #Validation and reloading settings
 RELOAD_DATALOADERS_EVERY_N_EPOCHS=1
-EVERY_PLOT_STEP=200
+EVERY_PLOT_STEP=2000
 VAL_CHECK_INTERVAL=30
 LORA_CONFIG_PATH="config/zh_rap_lora_config.json"
 
