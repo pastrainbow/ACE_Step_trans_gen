@@ -9,8 +9,8 @@ SHIFT=3.0
 
 #training hyperparameters
 LEARNING_RATE=1e-4
-NUM_WORKERS=8
-EPOCHS=1
+NUM_WORKERS=4
+EPOCHS=5
 MAX_STEPS=2000000
 EVERY_N_TRAIN_STEPS=2000 #should be 2000. 200 for debugging the checkpointing
 

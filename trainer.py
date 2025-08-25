@@ -17,7 +17,6 @@ from acestep.schedulers.scheduling_flow_match_euler_discrete import (
     FlowMatchEulerDiscreteScheduler,
 )
 from acestep.text2music_dataset import Text2MusicDataset
-# from text2music_dataset import Text2MusicDataset
 from loguru import logger
 from transformers import AutoModel, Wav2Vec2FeatureExtractor
 import torchaudio
@@ -30,9 +29,10 @@ from tqdm import tqdm
 import random
 from acestep.pipeline_ace_step import ACEStepPipeline
 
-import pytorch_lightning as pl
+# import pytorch_lightning as pl
 
-from pytorch_lightning.strategies import DDPStrategy
+# from pytorch_lightning.strategies import DDPStrategy
+from pytorch_lightning.strategies import DeepSpeedStrategy
 
 matplotlib.use("Agg")
 torch.backends.cudnn.benchmark = False
@@ -620,7 +620,7 @@ class Pipeline(LightningModule):
         return self.run_step(batch, batch_idx)
 
     def on_save_checkpoint(self, checkpoint):
-        print("[DEBUG] On saving checkpoint action...")
+        print("[DEBUG] Saving lora weights...")
         state = {}
         log_dir = self.logger.log_dir
         epoch = self.current_epoch
@@ -837,81 +837,81 @@ class Pipeline(LightningModule):
 
 
 
-class CheckpointMemoryOptimizer(pl.Callback):
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        print("[DEBUG] Clearing memory...")
-        global_step = trainer.global_step
-        if global_step % trainer.checkpoint_callback.every_n_train_steps == 0:
-            # Clear memory before checkpointing
-            torch.cuda.empty_cache()
-            import gc
-            gc.collect()
+# class CheckpointMemoryOptimizer(pl.Callback):
+#     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+#         print("[DEBUG] Clearing memory...")
+#         global_step = trainer.global_step
+#         if global_step % trainer.checkpoint_callback.every_n_train_steps == 0:
+#             # Clear memory before checkpointing
+#             torch.cuda.empty_cache()
+#             import gc
+#             gc.collect()
 
 
-class LoraOnlyCheckpoint(pl.Callback):
-    def __init__(self, every_n_train_steps=1000, save_dir="checkpoints"):
-        self.every_n_train_steps = every_n_train_steps
-        self.save_dir = save_dir
+# class LoraOnlyCheckpoint(pl.Callback):
+#     def __init__(self, every_n_train_steps=1000, save_dir="checkpoints"):
+#         self.every_n_train_steps = every_n_train_steps
+#         self.save_dir = save_dir
 
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        global_step = trainer.global_step
-        if global_step % self.every_n_train_steps == 0 and trainer.is_global_zero:
-            # clear CUDA memory before saving
-            torch.cuda.empty_cache()
-            import gc
-            gc.collect()
+#     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+#         global_step = trainer.global_step
+#         if global_step % self.every_n_train_steps == 0 and trainer.is_global_zero:
+#             # clear CUDA memory before saving
+#             torch.cuda.empty_cache()
+#             import gc
+#             gc.collect()
 
-            # build checkpoint path
-            step_name = f"step={global_step}_lora"
-            ckpt_dir = os.path.join(trainer.logger.log_dir, self.save_dir, step_name)
-            os.makedirs(ckpt_dir, exist_ok=True)
+#             # build checkpoint path
+#             step_name = f"step={global_step}_lora"
+#             ckpt_dir = os.path.join(trainer.logger.log_dir, self.save_dir, step_name)
+#             os.makedirs(ckpt_dir, exist_ok=True)
 
-            # save only LoRA adapter (as defined in Pipeline.on_save_checkpoint)
-            pl_module.transformers.save_lora_adapter(
-                ckpt_dir, adapter_name=pl_module.adapter_name
-            )
+#             # save only LoRA adapter (as defined in Pipeline.on_save_checkpoint)
+#             pl_module.transformers.save_lora_adapter(
+#                 ckpt_dir, adapter_name=pl_module.adapter_name
+#             )
 
-            print(f"[DEBUG] Saved lightweight checkpoint at {ckpt_dir}")
+#             print(f"[DEBUG] Saved lightweight checkpoint at {ckpt_dir}")
 
 
-class HybridCheckpoint(pl.Callback):
-    def __init__(self, 
-                 lora_every_n_steps=1000, 
-                 full_every_n_steps=10000, 
-                 save_dir="checkpoints"):
-        self.lora_every_n_steps = lora_every_n_steps
-        self.full_every_n_steps = full_every_n_steps
-        self.save_dir = save_dir
+# class HybridCheckpoint(pl.Callback):
+#     def __init__(self, 
+#                  lora_every_n_steps=1000, 
+#                  full_every_n_steps=10000, 
+#                  save_dir="checkpoints"):
+#         self.lora_every_n_steps = lora_every_n_steps
+#         self.full_every_n_steps = full_every_n_steps
+#         self.save_dir = save_dir
 
-    def _clear_mem(self):
-        torch.cuda.empty_cache()
-        import gc
-        gc.collect()
+#     def _clear_mem(self):
+#         torch.cuda.empty_cache()
+#         import gc
+#         gc.collect()
 
-    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        global_step = trainer.global_step
-        if not trainer.is_global_zero:
-            return
+#     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+#         global_step = trainer.global_step
+#         if not trainer.is_global_zero:
+#             return
 
-        # --- save LoRA adapter only ---
-        if self.lora_every_n_steps > 0 and global_step % self.lora_every_n_steps == 0:
-            self._clear_mem()
-            step_name = f"step={global_step}_lora"
-            ckpt_dir = os.path.join(trainer.logger.log_dir, self.save_dir, step_name)
-            os.makedirs(ckpt_dir, exist_ok=True)
-            pl_module.transformers.save_lora_adapter(
-                ckpt_dir, adapter_name=pl_module.adapter_name
-            )
-            print(f"[DEBUG] Saved lightweight LoRA checkpoint at {ckpt_dir}")
+#         # --- save LoRA adapter only ---
+#         if self.lora_every_n_steps > 0 and global_step % self.lora_every_n_steps == 0:
+#             self._clear_mem()
+#             step_name = f"step={global_step}_lora"
+#             ckpt_dir = os.path.join(trainer.logger.log_dir, self.save_dir, step_name)
+#             os.makedirs(ckpt_dir, exist_ok=True)
+#             pl_module.transformers.save_lora_adapter(
+#                 ckpt_dir, adapter_name=pl_module.adapter_name
+#             )
+#             print(f"[DEBUG] Saved lightweight LoRA checkpoint at {ckpt_dir}")
 
-        # --- save full training state (optimizer, scheduler, etc.) ---
-        if self.full_every_n_steps > 0 and global_step % self.full_every_n_steps == 0:
-            self._clear_mem()
-            step_name = f"step={global_step}_full.ckpt"
-            ckpt_path = os.path.join(trainer.logger.log_dir, self.save_dir, step_name)
-            trainer.save_checkpoint(ckpt_path)
-            self._clear_mem()
-            print(f"[DEBUG] Saved FULL checkpoint at {ckpt_path}")
+#         # --- save full training state (optimizer, scheduler, etc.) ---
+#         if self.full_every_n_steps > 0 and global_step % self.full_every_n_steps == 0:
+#             self._clear_mem()
+#             step_name = f"step={global_step}_full.ckpt"
+#             ckpt_path = os.path.join(trainer.logger.log_dir, self.save_dir, step_name)
+#             trainer.save_checkpoint(ckpt_path)
+#             self._clear_mem()
+#             print(f"[DEBUG] Saved FULL checkpoint at {ckpt_path}")
 
 
 def main(args):
@@ -926,6 +926,7 @@ def main(args):
         adapter_name=args.exp_name,
         lora_config_path=args.lora_config_path
     )
+
     checkpoint_callback = ModelCheckpoint(
         monitor=None,
         every_n_train_steps=args.every_n_train_steps,
@@ -947,6 +948,11 @@ def main(args):
         precision=args.precision,
         accumulate_grad_batches=args.accumulate_grad_batches,
         strategy="ddp_find_unused_parameters_true",
+        # strategy=DeepSpeedStrategy(
+        #     stage=2,  # or 3 if you want ZeRO-3 full sharding
+        #     offload_optimizer=True,   # moves optimizer state to CPU (saves VRAM + RAM)
+        #     offload_parameters=False, # if True, parameters also offload to CPU (slower but saves more RAM)
+        # ),
         max_epochs=args.epochs,
         max_steps=args.max_steps,
         log_every_n_steps=1,
