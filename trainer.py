@@ -29,6 +29,8 @@ from tqdm import tqdm
 import random
 from acestep.pipeline_ace_step import ACEStepPipeline
 
+import psutil
+
 # import pytorch_lightning as pl
 
 # from pytorch_lightning.strategies import DDPStrategy
@@ -848,72 +850,37 @@ class Pipeline(LightningModule):
 #             gc.collect()
 
 
-# class LoraOnlyCheckpoint(pl.Callback):
-#     def __init__(self, every_n_train_steps=1000, save_dir="checkpoints"):
-#         self.every_n_train_steps = every_n_train_steps
-#         self.save_dir = save_dir
 
+
+
+# from pytorch_lightning.callbacks import Callback
+
+# class RAMLogBeforeCheckpoint(Callback):
 #     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-#         global_step = trainer.global_step
-#         if global_step % self.every_n_train_steps == 0 and trainer.is_global_zero:
-#             # clear CUDA memory before saving
-#             torch.cuda.empty_cache()
-#             import gc
-#             gc.collect()
 
-#             # build checkpoint path
-#             step_name = f"step={global_step}_lora"
-#             ckpt_dir = os.path.join(trainer.logger.log_dir, self.save_dir, step_name)
-#             os.makedirs(ckpt_dir, exist_ok=True)
-
-#             # save only LoRA adapter (as defined in Pipeline.on_save_checkpoint)
-#             pl_module.transformers.save_lora_adapter(
-#                 ckpt_dir, adapter_name=pl_module.adapter_name
-#             )
-
-#             print(f"[DEBUG] Saved lightweight checkpoint at {ckpt_dir}")
-
-
-# class HybridCheckpoint(pl.Callback):
-#     def __init__(self, 
-#                  lora_every_n_steps=1000, 
-#                  full_every_n_steps=10000, 
-#                  save_dir="checkpoints"):
-#         self.lora_every_n_steps = lora_every_n_steps
-#         self.full_every_n_steps = full_every_n_steps
-#         self.save_dir = save_dir
-
-#     def _clear_mem(self):
 #         torch.cuda.empty_cache()
-#         import gc
-#         gc.collect()
+#         import gc; gc.collect()
 
-#     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-#         global_step = trainer.global_step
-#         if not trainer.is_global_zero:
-#             return
-
-#         # --- save LoRA adapter only ---
-#         if self.lora_every_n_steps > 0 and global_step % self.lora_every_n_steps == 0:
-#             self._clear_mem()
-#             step_name = f"step={global_step}_lora"
-#             ckpt_dir = os.path.join(trainer.logger.log_dir, self.save_dir, step_name)
-#             os.makedirs(ckpt_dir, exist_ok=True)
-#             pl_module.transformers.save_lora_adapter(
-#                 ckpt_dir, adapter_name=pl_module.adapter_name
-#             )
-#             print(f"[DEBUG] Saved lightweight LoRA checkpoint at {ckpt_dir}")
-
-#         # --- save full training state (optimizer, scheduler, etc.) ---
-#         if self.full_every_n_steps > 0 and global_step % self.full_every_n_steps == 0:
-#             self._clear_mem()
-#             step_name = f"step={global_step}_full.ckpt"
-#             ckpt_path = os.path.join(trainer.logger.log_dir, self.save_dir, step_name)
-#             trainer.save_checkpoint(ckpt_path)
-#             self._clear_mem()
-#             print(f"[DEBUG] Saved FULL checkpoint at {ckpt_path}")
+#         # # # You can also dump custom logs, sync files, etc.
+#         # #Log RAM usage
+#         # print(f"Logging RAM info for step {trainer.global_step}...")
+#         # ram = psutil.virtual_memory()
+#         # print(f"Total RAM: {ram.total / (1024 ** 3):.2f} GB")
+#         # print(f"Used RAM: {ram.used / (1024 ** 3):.2f} GB")
+#         # print(f"Available RAM: {ram.available / (1024 ** 3):.2f} GB")
+#         # print(f"RAM Usage: {ram.percent}%")
 
 
+#         process = psutil.Process(os.getpid())
+#         mem_info = process.memory_info()  # in bytes
+
+#         rss_gb = mem_info.rss / (1024 ** 3)  # Resident Set Size: actual RAM used
+#         vms_gb = mem_info.vms / (1024 ** 3)  # Virtual memory size
+
+#         print(f"[Step {trainer.global_step}] CPU RAM usage (RSS): {rss_gb:.2f} GB, VMS: {vms_gb:.2f} GB")
+
+
+        
 def main(args):
     model = Pipeline(
         learning_rate=args.learning_rate,
@@ -931,6 +898,7 @@ def main(args):
         monitor=None,
         every_n_train_steps=args.every_n_train_steps,
         save_top_k=-1,
+        save_weights_only=True,
     )
 
     # add datetime str to version
@@ -947,16 +915,17 @@ def main(args):
         num_nodes=args.num_nodes,
         precision=args.precision,
         accumulate_grad_batches=args.accumulate_grad_batches,
-        strategy="ddp_find_unused_parameters_true",
-        # strategy=DeepSpeedStrategy(
-        #     stage=2,  # or 3 if you want ZeRO-3 full sharding
-        #     offload_optimizer=True,   # moves optimizer state to CPU (saves VRAM + RAM)
-        #     offload_parameters=False, # if True, parameters also offload to CPU (slower but saves more RAM)
-        # ),
+        # strategy="ddp_find_unused_parameters_true",
+        strategy=DeepSpeedStrategy(
+            stage=2,  # or 3 if you want ZeRO-3 full sharding
+            offload_optimizer=False,   # avoid the need to modify optimizer
+            offload_parameters=False, # if True, parameters also offload to CPU (slower but saves more RAM)
+        ),
         max_epochs=args.epochs,
         max_steps=args.max_steps,
         log_every_n_steps=1,
         logger=logger_callback,
+        # callbacks=[RAMLogBeforeCheckpoint(), checkpoint_callback],
         callbacks=[checkpoint_callback],
         gradient_clip_val=args.gradient_clip_val,
         gradient_clip_algorithm=args.gradient_clip_algorithm,
@@ -972,6 +941,18 @@ def main(args):
 
 if __name__ == "__main__":
     print(f"[DEBUG] Custom trainer.")
+
+    # # You can also dump custom logs, sync files, etc.
+    #Log RAM usage
+    print(f"Logging RAM info...")
+    ram = psutil.virtual_memory()
+    print(f"Total RAM: {ram.total / (1024 ** 3):.2f} GB")
+    print(f"Used RAM: {ram.used / (1024 ** 3):.2f} GB")
+    print(f"Available RAM: {ram.available / (1024 ** 3):.2f} GB")
+    print(f"RAM Usage: {ram.percent}%")
+
+    
+
     args = argparse.ArgumentParser()
     args.add_argument("--num_nodes", type=int, default=1)
     args.add_argument("--shift", type=float, default=3.0)

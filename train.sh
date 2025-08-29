@@ -10,9 +10,9 @@ SHIFT=3.0
 #training hyperparameters
 LEARNING_RATE=1e-4
 NUM_WORKERS=4
-EPOCHS=5
+EPOCHS=1
 MAX_STEPS=2000000
-EVERY_N_TRAIN_STEPS=2000 #should be 2000. 200 for debugging the checkpointing
+EVERY_N_TRAIN_STEPS=20000 #should be 2000. 200 for debugging the checkpointing
 
 #experiment settings
 DATASET_PATH="./zh_lora_dataset"
@@ -29,10 +29,11 @@ DEVICES=1
 LOGGER_DIR="./exps/logs/"
 CKPT_PATH="none"
 CHECKPOINT_DIR="/vol/bitbucket/al4624/ace_step_model_output/"
+# CHECKPOINT_DIR="/vol/bitbucket/al4624/git_repo/ACE-Step/exps/logs/lightning_logs/2025-08-27_17-03-11transition_generation/checkpoints/epoch=0-step=60_lora"
 
 #Validation and reloading settings
 RELOAD_DATALOADERS_EVERY_N_EPOCHS=1
-EVERY_PLOT_STEP=2000
+EVERY_PLOT_STEP=20000
 VAL_CHECK_INTERVAL=30
 LORA_CONFIG_PATH="config/zh_rap_lora_config.json"
 
